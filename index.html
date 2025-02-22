@@ -12,7 +12,8 @@
     </style>
 </head>
 <body>
-
+    <h3>Önce aşağıdaki scriptin çalıştırılması gerekir.Msgtype 1220,1221 olanları ayırmak için</h3>  
+    <h4>SELECT * FROM SHELLSMARTQUEUE WHERE MSGSTATUS = '0' AND MSGTYPE NOT IN (1220, 1221) ORDER BY 1 DESC;</h4> 
     
     <textarea id="inputData" placeholder="Verileri buraya yapıştır..."></textarea><br>
     <button onclick="generateSQL()">SQL Oluştur</button>
