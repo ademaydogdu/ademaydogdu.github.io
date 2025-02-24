@@ -29,8 +29,8 @@
             let sqlQueries = [];
 
             lines.forEach(line => {
-                const rid = line.trim().split("\t")[0]; // İlk sütundaki RID'i al
-                if (!isNaN(rid) && rid.length > 0) { // Sayısal olup olmadığını kontrol et
+                const rid = line.trim().split("\t")[0]; 
+                if (!isNaN(rid) && rid.length > 0) { 
                     sqlQueries.push(`UPDATE SHELLSMARTQUEUE SET MSGSTATUS='1' WHERE RID=${rid};`);
                 }
             });
@@ -41,7 +41,7 @@
         function copySQL() {
             const outputSQL = document.getElementById("outputSQL").innerText;
             navigator.clipboard.writeText(outputSQL).then(() => {
-                alert("SQL sorguları kopyalandı!");
+                alert("Kopyalandı!");
             });
         }
     </script>
