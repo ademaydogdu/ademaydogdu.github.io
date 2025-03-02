@@ -23,19 +23,24 @@
     <pre id="outputSQL"></pre>
 
     <script>
-        function generateSQL() {
+            function generateSQL() {
             const inputData = document.getElementById("inputData").value;
             const lines = inputData.split("\n");
-            let sqlQueries = [];
+            let rids = [];
 
             lines.forEach(line => {
-                const rid = line.trim().split("\t")[0]; 
-                if (!isNaN(rid) && rid.length > 0) { 
-                    sqlQueries.push(`UPDATE SHELLSMARTQUEUE SET MSGSTATUS='1' WHERE RID=${rid};`);
+                const rid = line.trim().split("\t")[0]; // İlk sütundaki RID'i al
+                if (!isNaN(rid) && rid.length > 0) { // Sayısal olup olmadığını kontrol et
+                    rids.push(rid);
                 }
             });
 
-            document.getElementById("outputSQL").innerText = sqlQueries.join("\n");
+            if (rids.length > 0) {
+                const sqlQuery = `UPDATE SHELLSMARTQUEUE SET MSGSTATUS='1' WHERE RID IN (${rids.join(",")});`;
+                document.getElementById("outputSQL").innerText = sqlQuery;
+            } else {
+                document.getElementById("outputSQL").innerText = "RID değerleri bulunamadı!";
+            }
         }
 
         function copySQL() {
