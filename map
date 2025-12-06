@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>WLED - İç Örgülü Map Üretici</title>
+  <style>
+    body{font-family:Inter,Arial,Helvetica,sans-serif;background:#0f1724;color:#e6eef8;padding:18px}
+    .wrap{max-width:880px;margin:12px auto;background:#071025;padding:18px;border-radius:10px;box-shadow:0 6px 30px rgba(2,6,23,.6)}
+    h1{font-size:18px;margin:0 0 10px}
+    p{margin:6px 0 12px;color:#9fb3d0}
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    .card{background:#071a2b;padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);width:100%}
+    label{display:block;font-size:13px;color:#a9c0d9;margin-top:8px}
+    input[type=number]{width:130px;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);background:#042033;color:#dff;}
+    button{padding:10px 12px;border-radius:8px;border:none;background:#06b6d4;color:#012;border:0;cursor:pointer}
+    button.secondary{background:#334155;color:#e6eef8}
+    #letters{margin-top:12px;display:grid;gap:8px}
+    .letter{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;align-items:center;padding:8px;border-radius:8px;background:#041622}
+    .letter h3{margin:0;font-size:13px;color:#cfe9ff}
+    textarea{width:100%;height:220px;margin-top:12px;padding:12px;border-radius:8px;background:#021722;color:#dff;border:1px solid rgba(255,255,255,0.03)}
+    .small{font-size:12px;color:#9fb3d0}
+    .row-actions{display:flex;gap:8px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>WLED — İç Örgülü (Interleave) Map Üretici</h1>
+    <p>Bu araç <strong>sadece iç (çift sıra) LED blokları</strong> için otomatik olarak interleave edilmiş (örgülü) tek bir <code>map</code> JSON çıktısı üretir. "Dış" LED'leri WLED map'e eklemeyin — dışlar fiziksel sıradaysa map'e gerek yoktur.</p>
+
+    <div class="card">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <label class="small">Her blok = bir harfin içindeki çift sıralı LED (ör: üst ve alt sıra)</label>
+        <button onclick="addBlock()">Blok Ekle</button>
+        <button class="secondary" onclick="clearBlocks()">Tümünü Temizle</button>
+        <div style="margin-left:auto">
+          <button onclick="generate()">MAP Oluştur</button>
+        </div>
+      </div>
+
+      <div id="letters"></div>
+
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+        <label class="small">Toplam taşınan LED sayısını otomatik hesapla:</label>
+        <button class="secondary" onclick="calcTotals()">Hesapla</button>
+        <div id="totals" style="margin-left:6px;color:#cfe9ff;font-weight:600"></div>
+      </div>
+
+      <h3 style="margin-top:12px">Oluşan JSON (kopyala → WLED &gt; LED Preferences &gt; LED Mapping)</h3>
+      <textarea id="output" readonly placeholder="Map burada görünecek..."></textarea>
+
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button onclick="downloadJSON()">JSON İndir</button>
+        <button class="secondary" onclick="copyToClipboard()">Kopyala</button>
+      </div>
+
+      <p class="small">Not: Her blok için iki sıra girmelisiniz. Eğer blokta tek sıra varsa ikinci sırayı boş bırakın; araç o blok için düz sıra ekleyecektir.</p>
+    </div>
+  </div>
+
+<script>
+let idCounter = 0;
+function addBlock(pref={i1Start:'',i1End:'',i2Start:'',i2End:''}){
+  idCounter++;
+  const id = idCounter;
+  const div = document.createElement('div');
+  div.className='letter';
+  div.id='blk_'+id;
+  div.innerHTML = `
+    <div><h3>Blok ${id}</h3></div>
+    <div>
+      <label class="small">İç 1. sıra start</label>
+      <input type="number" id="i1s_${id}" value="${pref.i1Start}" />
+    </div>
+    <div>
+      <label class="small">İç 1. sıra end</label>
+      <input type="number" id="i1e_${id}" value="${pref.i1End}" />
+    </div>
+    <div>
+      <label class="small">İç 2. sıra start</label>
+      <input type="number" id="i2s_${id}" value="${pref.i2Start}" />
+    </div>
+    <div>
+      <label class="small">İç 2. sıra end</label>
+      <input type="number" id="i2e_${id}" value="${pref.i2End}" />
+    </div>
+    <div class="row-actions" style="grid-column:1 / -1;margin-top:6px">
+      <button onclick="removeBlock(${id})">Sil</button>
+      <button class="secondary" onclick="fillExample(${id})">Örnek Doldur</button>
+    </div>
+  `;
+  document.getElementById('letters').appendChild(div);
+}
+function removeBlock(id){const el=document.getElementById('blk_'+id);if(el)el.remove();}
+function clearBlocks(){document.getElementById('letters').innerHTML=''; idCounter=0; document.getElementById('output').value=''; document.getElementById('totals').textContent='';}
+function fillExample(id){document.getElementById('i1s_'+id).value=0;document.getElementById('i1e_'+id).value=150;document.getElementById('i2s_'+id).value=151;document.getElementById('i2e_'+id).value=298;}
+
+function interleaveTwo(r1s,r1e,r2s,r2e){
+  const len1 = (r1e - r1s) + 1;
+  const len2 = (r2e - r2s) + 1;
+  const maxLen = Math.max(len1,len2);
+  const out = [];
+  for(let i=0;i<maxLen;i++){
+    if(i < len1) out.push(r1s + i);
+    if(i < len2) out.push(r2s + i);
+  }
+  return out;
+}
+
+function generate(){
+  const blocks = document.querySelectorAll('.letter');
+  let full = [];
+  for(const b of blocks){
+    const id = b.id.split('_')[1];
+    const i1s = Number(document.getElementById('i1s_'+id).value);
+    const i1e = Number(document.getElementById('i1e_'+id).value);
+    const i2s = document.getElementById('i2s_'+id).value;
+    const i2e = document.getElementById('i2e_'+id).value;
+
+    // Validate
+    if(Number.isFinite(i1s) && Number.isFinite(i1e) && i1e >= i1s){
+      if(i2s!=='' && i2e!==''){
+        const r2s = Number(i2s); const r2e = Number(i2e);
+        if(Number.isFinite(r2s) && Number.isFinite(r2e) && r2e >= r2s){
+          full = full.concat(interleaveTwo(i1s,i1e,r2s,r2e));
+          continue;
+        } else {
+          alert('Blok '+id+': İç 2 sıra hatalı. Tek sıra kullanmak istersen sadece İç1 doldur.');
+          return;
+        }
+      }
+      // sadece tek sıra varsa düz ekle
+      for(let x=i1s;x<=i1e;x++) full.push(x);
+    } else {
+      alert('Blok '+id+': İç 1 sıra başlangıç/bitiş hatalı veya boş.');
+      return;
+    }
+  }
+
+  const out = { map: full };
+  document.getElementById('output').value = JSON.stringify(out,null,2);
+}
+
+function calcTotals(){
+  const blocks = document.querySelectorAll('.letter');
+  let total = 0;
+  for(const b of blocks){
+    const id = b.id.split('_')[1];
+    const i1s = Number(document.getElementById('i1s_'+id).value);
+    const i1e = Number(document.getElementById('i1e_'+id).value);
+    const i2s = document.getElementById('i2s_'+id).value;
+    const i2e = document.getElementById('i2e_'+id).value;
+    if(Number.isFinite(i1s) && Number.isFinite(i1e) && i1e>=i1s){
+      total += (i1e - i1s + 1);
+    }
+    if(i2s!=='' && i2e!==''){
+      const r2s = Number(i2s); const r2e = Number(i2e);
+      if(Number.isFinite(r2s) && Number.isFinite(r2e) && r2e>=r2s){
+        total += (r2e - r2s + 1);
+      }
+    }
+  }
+  document.getElementById('totals').textContent = total + ' LED (kaba toplam)';
+}
+
+function copyToClipboard(){const txt=document.getElementById('output').value; if(!txt){alert('Önce MAP oluşturun.');return;} navigator.clipboard.writeText(txt).then(()=>alert('Kopyalandı'));}
+
+function downloadJSON(){const txt=document.getElementById('output').value; if(!txt){alert('Önce MAP oluşturun.');return;} const blob=new Blob([txt],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='wled_map.json'; a.click(); URL.revokeObjectURL(url);}
+
+// başlangıçta 1 blok ekle
+addBlock();
+</script>
+</body>
+</html>
+
