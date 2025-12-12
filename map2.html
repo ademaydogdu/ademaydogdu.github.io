@@ -1,244 +1,239 @@
-<!DOCTYPE html><html lang="tr">
+<!doctype html>
+<html lang="tr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>WLED — İç + Dış LED MAP Üretici</title>
-  <style>
-    :root{--bg:#0f1724;--card:#071025;--muted:#9fb3d0;--accent:#06b6d4}
-    body{font-family:Inter,Arial,Helvetica,sans-serif;background:var(--bg);color:#e6eef8;padding:18px}
-    .wrap{max-width:960px;margin:12px auto;background:var(--card);padding:18px;border-radius:10px;box-shadow:0 6px 30px rgba(2,6,23,.6)}
-    h1{font-size:20px;margin:0 0 14px}
-    h2{font-size:17px;margin:16px 0 6px}
-    p{margin:6px 0 12px;color:var(--muted)}
-    .section{border:1px solid rgba(255,255,255,.05);border-radius:10px;padding:16px;margin-top:20px;background:#061628}
-    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-    .block{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:12px;border-radius:8px;background:#041622;margin-bottom:10px;align-items:end}
-    label{display:block;font-size:13px;color:#a9c0d9}
-    input[type=number]{width:100%;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);background:#042033;color:#dff}
-    button{padding:10px 12px;border-radius:8px;border:none;background:var(--accent);color:#012;cursor:pointer}
-    button.secondary{background:#334155;color:#e6eef8}
-    textarea{width:100%;height:260px;margin-top:16px;padding:12px;border-radius:8px;background:#021722;color:#dff;border:1px solid rgba(255,255,255,0.03)}
-    .small{font-size:12px;color:var(--muted)}
-    .row-actions{display:flex;gap:8px;align-items:center}
-    .revWrap{display:inline-flex;align-items:center;gap:6px}
-    .totals{background:#071c2a;padding:12px;border-radius:8px;margin-top:12px;color:var(--muted)}
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>WLED — İç + Dış LED MAP Üretici (Düzeltme)</title>
+<style>
+:root{--bg:#0f1724;--card:#071025;--muted:#9fb3d0;--accent:#06b6d4}
+body{font-family:Inter,Arial,Helvetica,sans-serif;background:var(--bg);color:#e6eef8;padding:18px}
+.wrap{max-width:960px;margin:12px auto;background:var(--card);padding:18px;border-radius:10px;box-shadow:0 6px 30px rgba(2,6,23,.6)}
+h1{font-size:20px;margin:0 0 14px}
+.section{border:1px solid rgba(255,255,255,.05);border-radius:10px;padding:16px;margin-top:20px;background:#061628}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.block{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:12px;border-radius:8px;background:#041622;margin-bottom:10px;align-items:end}
+label{display:block;font-size:13px;color:#a9c0d9}
+input[type=number]{width:100%;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);background:#042033;color:#dff}
+button{padding:10px 12px;border-radius:8px;border:none;background:var(--accent);color:#012;cursor:pointer}
+button.secondary{background:#334155;color:#e6eef8}
+textarea{width:100%;height:260px;margin-top:16px;padding:12px;border-radius:8px;background:#021722;color:#dff;border:1px solid rgba(255,255,255,0.03)}
+.revWrap{display:inline-flex;align-items:center;gap:6px}
+.totals{background:#071c2a;padding:12px;border-radius:8px;margin-top:12px;color:var(--muted)}
+.row-actions{display:flex;gap:8px;align-items:center}
+</style>
 </head>
 <body>
 <div class="wrap">
-<h1>WLED — İç Örgülü + Dış LED MAP Üretme Aracı</h1>
-<p>Bu araç dış blokları önce birleşik (ardışık) hale getirir, ardından iç (çift sıra) blokları interleave (örgü) yaparak tek bir JSON <code>map</code> çıktısı üretir. Her iç blok için satır bazlı <strong>ters</strong> seçeneği bulunur. Ayrıca dış veya iç blokları global olarak ters sırada birleştirme seçeneği mevcuttur.</p><!---------------- EXTERNAL BLOCKS ----------------><div class="section">
-  <h2>1) Dış LED Blokları</h2>
-  <p>Dış sınırdaki harf LED'lerini baştan sona sıralamak için her blok başlangıç–bitiş girin.</p>
-  <div class="controls">
-    <button onclick="addOuter()">Dış Blok Ekle</button>
-    <button class="secondary" onclick="clearOuter()">Temizle</button>
-    <label style="margin-left:auto;display:flex;align-items:center;gap:8px"><input type="checkbox" id="reverseOuter"> Dış blokları global ters sırayla birleştir</label>
+  <h1>WLED — İç Örgülü + Dış LED MAP Üretme Aracı</h1>
+
+  <div class="section">
+    <h2>1) Dış LED Blokları</h2>
+    <div class="controls">
+      <button id="btnAddOuter" type="button">Dış Blok Ekle</button>
+      <button id="btnClearOuter" class="secondary" type="button">Temizle</button>
+      <label style="margin-left:auto;display:flex;align-items:center;gap:8px">
+        <input type="checkbox" id="reverseOuter"> Dış blokları global ters sırayla birleştir
+      </label>
+    </div>
+    <div id="outerBlocks"></div>
   </div>
-  <div id="outerBlocks"></div>
-</div><!---------------- INTERNAL BLOCKS ----------------><div class="section">
-  <h2>2) İç Örgülü LED Blokları (Çift Sıra)</h2>
-  <p>İç dolgu LED'leri için alt alta iki sıra girin. Araç otomatik olarak örgülü (interleave) yapar. Her satırın yanında "Sil" ve "ters" kutucuğu bulunur.</p>  <div class="controls">
-    <button onclick="addInner()">İç Blok Ekle</button>
-    <button class="secondary" onclick="clearInner()">Temizle</button>
-    <label style="margin-left:auto;display:flex;align-items:center;gap:8px"><input type="checkbox" id="reverseInner"> İç blokları global ters sırayla birleştir</label>
-  </div>  <div id="innerBlocks"></div>
-</div><!---------------- GENERATE ----------------><div class="section">
-  <h2>3) MAP Oluştur</h2>
-  <div style="display:flex;gap:8px;align-items:center">
-    <button onclick="generate()" style="margin-right:10px">MAP Oluştur</button>
-    <button class="secondary" onclick="downloadJSON()">JSON İndir</button>
-    <button class="secondary" onclick="copyToClipboard()">Kopyala</button>
-    <div style="margin-left:auto;color:var(--muted)" class="small">Not: Dış bloklar map'te üstte, iç bloklar altta yer alır.</div>
-  </div>  <textarea id="output" placeholder="MAP burada oluşturulacak..."></textarea>  <div class="totals" id="totalsBox">
-    <div> <strong>Segment Özetleri</strong></div>
-    <div>Dış LED Toplamı: <span id="outerTotal">0</span></div>
-    <div>İç LED Toplamı: <span id="innerTotal">0</span></div>
-    <div>Genel Toplam: <span id="grandTotal">0</span></div>
-    <div>Segment 1 Aralığı (Dış): <span id="seg1">0 - 0</span></div>
-    <div>Segment 2 Aralığı (İç): <span id="seg2">0 - 0</span></div>
+
+  <div class="section">
+    <h2>2) İç Örgülü LED Blokları (Up to 3 rows)</h2>
+    <div class="controls">
+      <button id="btnAddInner" type="button">İç Blok Ekle</button>
+      <button id="btnClearInner" class="secondary" type="button">Temizle</button>
+      <label style="margin-left:auto;display:flex;align-items:center;gap:8px">
+        <input type="checkbox" id="reverseInner"> İç blokları global ters sırayla birleştir
+      </label>
+    </div>
+    <div id="innerBlocks"></div>
   </div>
-</div></div><script>
-let outerId = 0;
-let innerId = 0;
 
-// ---------------- OUTER BLOCKS ------------------
-function addOuter(pref={s:'',e:'',rev:false}){
-  outerId++;
-  const div=document.createElement('div');
-  div.className='block';
-  div.id='outer_'+outerId;
-  div.innerHTML = `
-    <div>
-      <label>Dış başlangıç</label>
-      <input type="number" id="os_${outerId}" value="${pref.s}" />
+  <div class="section">
+    <h2>3) MAP Oluştur</h2>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button id="btnGenerate" type="button">MAP Oluştur</button>
+      <button id="btnDownload" class="secondary" type="button">JSON İndir</button>
+      <button id="btnCopy" class="secondary" type="button">Kopyala</button>
+      <div style="margin-left:auto;color:var(--muted)" class="small">Not: Dış bloklar map'te üstte, iç bloklar altta yer alır.</div>
     </div>
-    <div>
-      <label>Dış bitiş</label>
-      <input type="number" id="oe_${outerId}" value="${pref.e}" />
-    </div>
-    <div style="display:flex;align-items:center;gap:8px">
-      <label class="revWrap"><input type="checkbox" id="or_${outerId}" ${pref.rev? 'checked':''}> ters</label>
-    </div>
-    <div class="row-actions">
-      <button onclick="removeOuter(${outerId})">Sil</button>
-    </div>
-  `;
-  document.getElementById('outerBlocks').appendChild(div);
-}
-function removeOuter(id){document.getElementById('outer_'+id)?.remove();}
-function clearOuter(){document.getElementById('outerBlocks').innerHTML=''; outerId=0;}
 
-// ---------------- INNER BLOCKS ------------------
-function addInner(pref={i1s:'',i1e:'',i2s:'',i2e:'',i3s:'',i3e:'',rev:false})(pref={i1s:'',i1e:'',i2s:'',i2e:'',rev:false}){
-  innerId++;
-  const div=document.createElement('div');
-  div.className='block';
-  div.id='inner_'+innerId;
-  div.innerHTML = `
-    <div>
-      <label>İç 1. sıra başlangıç</label>
-      <input type="number" id="i1s_${innerId}" value="${pref.i1s}" />
-    </div>
-    <div>
-      <label>İç 1. sıra bitiş</label>
-      <input type="number" id="i1e_${innerId}" value="${pref.i1e}" />
-    </div>
-    <div>
-      <label>İç 2. sıra başlangıç</label>
-      <input type="number" id="i2s_${innerId}" value="${pref.i2s}" />
-    </div>
-    <div>
-      <label>İç 2. sıra bitiş</label>
-      <input type="number" id="i2e_${innerId}" value="${pref.i2e}" />
-    </div>
-    <div>
-      <label>İç 3. sıra başlangıç</label>
-      <input type="number" id="i3s_${innerId}" value="${pref.i3s}" />
-    </div>
-    <div>
-      <label>İç 3. sıra bitiş</label>
-      <input type="number" id="i3e_${innerId}" value="${pref.i3e}" />
-    </div>
-    <div style="display:flex;align-items:center;gap:8px">
-      <label class="revWrap"><input type="checkbox" id="ir_${innerId}" ${pref.rev? 'checked':''}> ters</label>
-    </div>
-    <div class="row-actions">
-      <button onclick="removeInner(${innerId})">Sil</button>
-    </div>
-  `;
-  document.getElementById('innerBlocks').appendChild(div);
-}
-function removeInner(id){document.getElementById('inner_'+id)?.remove();}
-function clearInner(){document.getElementById('innerBlocks').innerHTML=''; innerId=0;}
+    <textarea id="output" placeholder="MAP burada oluşturulacak..."></textarea>
 
-// -------------- INTERLEAVE / HELPERS ----------------
-function interleaveTwo(a1,a2,b1,b2,revInner=false){
-  // returns interleaved array; if revInner true, interleave uses b reversed order per-block? (handled outside)
-  const len1 = (a2 - a1) + 1;
-  const len2 = (b2 - b1) + 1;
-  const max = Math.max(len1,len2);
-  const out = [];
-  for(let i=0;i<max;i++){
-    if(i < len1) out.push(a1 + i);
-    if(i < len2) out.push(b1 + i);
+    <div class="totals" id="totalsBox">
+      <div> <strong>Segment Özetleri</strong></div>
+      <div>Dış LED Toplamı: <span id="outerTotal">0</span></div>
+      <div>İç LED Toplamı: <span id="innerTotal">0</span></div>
+      <div>Genel Toplam: <span id="grandTotal">0</span></div>
+      <div>Segment 1 Aralığı (Dış): <span id="seg1">0 - 0</span></div>
+      <div>Segment 2 Aralığı (İç): <span id="seg2">0 - 0</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // Encapsulate to avoid globals while exposing needed functions via DOM events
+
+  let outerId = 0;
+  let innerId = 0;
+
+  const outerBlocks = document.getElementById('outerBlocks');
+  const innerBlocks = document.getElementById('innerBlocks');
+
+  // Helper: create outer block element
+  function createOuterElement(id, pref={s:'',e:'',rev:false}) {
+    const div = document.createElement('div');
+    div.className = 'block';
+    div.id = 'outer_' + id;
+    div.innerHTML = `
+      <div><label>Dış başlangıç</label><input type="number" id="os_${id}" value="${pref.s}"></div>
+      <div><label>Dış bitiş</label><input type="number" id="oe_${id}" value="${pref.e}"></div>
+      <div style="display:flex;align-items:center;gap:8px"><label class="revWrap"><input type="checkbox" id="or_${id}" ${pref.rev? 'checked':''}> ters</label></div>
+      <div class="row-actions"><button type="button" data-remove="${id}">Sil</button></div>
+    `;
+    // wire remove button
+    div.querySelector('button[data-remove]').addEventListener('click', () => div.remove());
+    return div;
   }
-  return out;
-}
 
-function rangeArray(start, end, reversed=false){
-  const out = [];
-  if(!Number.isFinite(start) || !Number.isFinite(end) || end < start) return out;
-  if(!reversed){
-    for(let i=start;i<=end;i++) out.push(i);
-  } else {
-    for(let i=end;i>=start;i--) out.push(i);
+  // Helper: create inner element (supports 3 rows)
+  function createInnerElement(id, pref={i1s:'',i1e:'',i2s:'',i2e:'',i3s:'',i3e:'',rev:false}) {
+    const div = document.createElement('div');
+    div.className = 'block';
+    div.id = 'inner_' + id;
+    div.innerHTML = `
+      <div><label>İç 1. sıra başlangıç</label><input type="number" id="i1s_${id}" value="${pref.i1s}"></div>
+      <div><label>İç 1. sıra bitiş</label><input type="number" id="i1e_${id}" value="${pref.i1e}"></div>
+      <div><label>İç 2. sıra başlangıç</label><input type="number" id="i2s_${id}" value="${pref.i2s}"></div>
+      <div><label>İç 2. sıra bitiş</label><input type="number" id="i2e_${id}" value="${pref.i2e}"></div>
+      <div><label>İç 3. sıra başlangıç</label><input type="number" id="i3s_${id}" value="${pref.i3s}"></div>
+      <div><label>İç 3. sıra bitiş</label><input type="number" id="i3e_${id}" value="${pref.i3e}"></div>
+      <div style="display:flex;align-items:center;gap:8px"><label class="revWrap"><input type="checkbox" id="ir_${id}" ${pref.rev? 'checked':''}> ters (satır2 ters)</label></div>
+      <div class="row-actions"><button type="button" data-remove="${id}">Sil</button></div>
+    `;
+    div.querySelector('button[data-remove]').addEventListener('click', () => div.remove());
+    return div;
   }
-  return out;
-}
 
-// ---------------- GENERATE MAP --------------------
-function generate(){
-  let outerMap = [];
-  // gather outer blocks in DOM order
-  const outerNodes = document.querySelectorAll('[id^="outer_"]');
-  for(const node of outerNodes){
-    const id = node.id.split('_')[1];
-    const s = Number(document.getElementById('os_'+id).value);
-    const e = Number(document.getElementById('oe_'+id).value);
-    const rowRev = document.getElementById('or_'+id)?.checked;
-    if(Number.isFinite(s) && Number.isFinite(e) && e>=s){
-      const arr = rangeArray(s,e,rowRev);
-      outerMap = outerMap.concat(arr);
-    }
+  // Public actions
+  function addOuter(pref) {
+    outerId++;
+    outerBlocks.appendChild(createOuterElement(outerId, pref));
   }
-  // global reverse option for outer
-  const outerGlobalRev = document.getElementById('reverseOuter')?.checked;
-  if(outerGlobalRev) outerMap.reverse();
+  function addInner(pref) {
+    innerId++;
+    innerBlocks.appendChild(createInnerElement(innerId, pref));
+  }
+  function clearOuter() { outerBlocks.innerHTML = ''; outerId = 0; }
+  function clearInner() { innerBlocks.innerHTML = ''; innerId = 0; }
 
-  // inner blocks (interleave each block)
-  let innerMap = [];
-  const innerNodes = document.querySelectorAll('[id^="inner_"]');
-  for(const node of innerNodes){
-    const id = node.id.split('_')[1];
-    const s1 = Number(document.getElementById('i1s_'+id).value);
-    const e1 = Number(document.getElementById('i1e_'+id).value);
-    const s2 = Number(document.getElementById('i2s_'+id).value);
-    const e2 = Number(document.getElementById('i2e_'+id).value);
-    const s3 = Number(document.getElementById('i3s_'+id)?.value);
-    const e3 = Number(document.getElementById('i3e_'+id)?.value);
-    const rev = document.getElementById('ir_'+id)?.checked;
+  // Range builder with optional reverse
+  function rangeArray(start, end, reversed=false) {
+    const out = [];
+    if(!Number.isFinite(start) || !Number.isFinite(end) || end < start) return out;
+    if(!reversed) { for(let i=start;i<=end;i++) out.push(i); }
+    else { for(let i=end;i>=start;i--) out.push(i); }
+    return out;
+  }
 
-    const row1 = Number.isFinite(s1)&&Number.isFinite(e1)&&e1>=s1 ? rangeArray(s1,e1,false) : [];
-    const row2 = Number.isFinite(s2)&&Number.isFinite(e2)&&e2>=s2 ? rangeArray(s2,e2,rev) : [];
-    const row3 = Number.isFinite(s3)&&Number.isFinite(e3)&&e3>=s3 ? rangeArray(s3,e3,false) : [];
+  // Generate map
+  function generateMap() {
+    try {
+      let outerMap = [];
+      const outerNodes = document.querySelectorAll('[id^="outer_"]');
+      outerNodes.forEach(node => {
+        const id = node.id.split('_')[1];
+        const s = Number(document.getElementById('os_'+id).value);
+        const e = Number(document.getElementById('oe_'+id).value);
+        const rowRev = document.getElementById('or_'+id)?.checked;
+        if(Number.isFinite(s) && Number.isFinite(e) && e>=s) {
+          outerMap = outerMap.concat(rangeArray(s,e,rowRev));
+        }
+      });
+      if(document.getElementById('reverseOuter')?.checked) outerMap.reverse();
 
-    const max = Math.max(row1.length,row2.length,row3.length);
-    for(let i=0;i<max;i++){
-      if(i<row1.length) innerMap.push(row1[i]);
-      if(i<row2.length) innerMap.push(row2[i]);
-      if(i<row3.length) innerMap.push(row3[i]);
+      let innerMap = [];
+      const innerNodes = document.querySelectorAll('[id^="inner_"]');
+      innerNodes.forEach(node => {
+        const id = node.id.split('_')[1];
+        const s1 = Number(document.getElementById('i1s_'+id).value);
+        const e1 = Number(document.getElementById('i1e_'+id).value);
+        const s2 = Number(document.getElementById('i2s_'+id).value);
+        const e2 = Number(document.getElementById('i2e_'+id).value);
+        const s3 = Number(document.getElementById('i3s_'+id).value);
+        const e3 = Number(document.getElementById('i3e_'+id).value);
+        const row2rev = document.getElementById('ir_'+id)?.checked;
+
+        const row1 = (Number.isFinite(s1)&&Number.isFinite(e1)&&e1>=s1) ? rangeArray(s1,e1,false) : [];
+        const row2 = (Number.isFinite(s2)&&Number.isFinite(e2)&&e2>=s2) ? rangeArray(s2,e2,row2rev) : [];
+        const row3 = (Number.isFinite(s3)&&Number.isFinite(e3)&&e3>=s3) ? rangeArray(s3,e3,false) : [];
+
+        const max = Math.max(row1.length,row2.length,row3.length);
+        for(let i=0;i<max;i++){
+          if(i<row1.length) innerMap.push(row1[i]);
+          if(i<row2.length) innerMap.push(row2[i]);
+          if(i<row3.length) innerMap.push(row3[i]);
+        }
+      });
+
+      if(document.getElementById('reverseInner')?.checked) innerMap.reverse();
+
+      const fullMap = outerMap.concat(innerMap);
+      document.getElementById('output').value = JSON.stringify({map: fullMap}, null, 2);
+      updateTotals(outerMap, innerMap);
+    } catch (err) {
+      console.error('generateMap error', err);
+      alert('Hata oluştu. Konsolu kontrol et.');
     }
   }
 
-  // global reverse option for inner
-  const innerGlobalRev = document.getElementById('reverseInner')?.checked;
-  if(innerGlobalRev) innerMap.reverse();
+  function updateTotals(outerMap, innerMap) {
+    const outerCount = outerMap.length;
+    const innerCount = innerMap.length;
+    const grand = outerCount + innerCount;
+    document.getElementById('outerTotal').textContent = outerCount;
+    document.getElementById('innerTotal').textContent = innerCount;
+    document.getElementById('grandTotal').textContent = grand;
+    document.getElementById('seg1').textContent = `0 - ${Math.max(0, outerCount - 1)}`;
+    document.getElementById('seg2').textContent = `${outerCount} - ${Math.max(0, grand - 1)}`;
+  }
 
+  function downloadJSON() {
+    const txt = document.getElementById('output').value;
+    if(!txt) { alert('Önce MAP oluşturun.'); return; }
+    const blob = new Blob([txt], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'wled_map.json'; a.click(); URL.revokeObjectURL(url);
+  }
+  function copyToClipboard() {
+    const t = document.getElementById('output').value; if(!t){ alert('MAP yok'); return; }
+    navigator.clipboard.writeText(t).then(()=>alert('Kopyalandı'));
+  }
 
-  const innerGlobalRev = document.getElementById('reverseInner')?.checked;
-  if(innerGlobalRev) innerMap.reverse();
+  // Attach UI events after DOM ready
+  window.addEventListener('DOMContentLoaded', () => {
+    // Buttons
+    document.getElementById('btnAddOuter').addEventListener('click', () => addOuter());
+    document.getElementById('btnClearOuter').addEventListener('click', () => clearOuter());
+    document.getElementById('btnAddInner').addEventListener('click', () => addInner());
+    document.getElementById('btnClearInner').addEventListener('click', () => clearInner());
 
-  // final full map: outer first, then inner
-  const fullMap = outerMap.concat(innerMap);
+    document.getElementById('btnGenerate').addEventListener('click', () => generateMap());
+    document.getElementById('btnDownload').addEventListener('click', () => downloadJSON());
+    document.getElementById('btnCopy').addEventListener('click', () => copyToClipboard());
 
-  document.getElementById('output').value = JSON.stringify({map: fullMap}, null, 2);
+    // Expose add/clear functions for debugging in console if needed
+    window._debug = { addOuter, addInner, clearOuter, clearInner, generateMap };
 
-  // update totals and segment ranges
-  updateTotals(outerMap, innerMap);
-}
+    // initialize some example blocks so UI isn't empty
+    addOuter({s:'0', e:'120'});
+    addOuter({s:'121', e:'210'});
+    addInner({i1s:'151', i1e:'298', i2s:'301', i2e:'448'});
+  });
 
-// ---------------- UTILS --------------------
-function updateTotals(outerMap, innerMap) {
-  const outerCount = outerMap.length;
-  const innerCount = innerMap.length;
-  const grand = outerCount + innerCount;
-
-  document.getElementById('outerTotal').textContent = outerCount;
-  document.getElementById('innerTotal').textContent = innerCount;
-  document.getElementById('grandTotal').textContent = grand;
-
-  document.getElementById('seg1').textContent = `0 - ${Math.max(0, outerCount - 1)}`;
-  document.getElementById('seg2').textContent = `${outerCount} - ${Math.max(0, grand - 1)}`;
-}
-
-function downloadJSON(){const txt=document.getElementById('output').value;if(!txt){alert('Önce MAP oluşturun.');return;} const blob=new Blob([txt],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='wled_map.json';a.click();URL.revokeObjectURL(url);}
-function copyToClipboard(){const t=document.getElementById('output').value;if(!t){alert('MAP yok');return;}navigator.clipboard.writeText(t).then(()=>alert('Kopyalandı'))}
-
-// Initialize with one example outer + one inner
-addOuter({s:'0',e:'120'});
-addOuter({s:'121',e:'210'});
-addInner({i1s:'151',i1e:'298',i2s:'301',i2e:'448'});
-
-</script></body>
+})();
+</script>
+</body>
 </html>
