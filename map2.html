@@ -1,229 +1,248 @@
-<!doctype html>
-
+<!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>WLED — İç + Dış LED MAP Üretici (Düzeltme)</title>
+<meta charset="UTF-8">
+<title>LED Map Generator</title>
+
 <style>
-:root{--bg:#0f1724;--card:#071025;--muted:#9fb3d0;--accent:#06b6d4}
-body{font-family:Inter,Arial,Helvetica,sans-serif;background:var(--bg);color:#e6eef8;padding:18px}
-.wrap{max-width:960px;margin:12px auto;background:var(--card);padding:18px;border-radius:10px;box-shadow:0 6px 30px rgba(2,6,23,.6)}
-h1{font-size:20px;margin:0 0 14px}
-.section{border:1px solid rgba(255,255,255,.05);border-radius:10px;padding:16px;margin-top:20px;background:#061628}
-.controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-.block{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:12px;border-radius:8px;background:#041622;margin-bottom:10px;align-items:end}
-label{display:block;font-size:13px;color:#a9c0d9}
-input[type=number]{width:100%;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);background:#042033;color:#dff}
-button{padding:10px 12px;border-radius:8px;border:none;background:var(--accent);color:#012;cursor:pointer}
-button.secondary{background:#334155;color:#e6eef8}
-textarea{width:100%;height:260px;margin-top:16px;padding:12px;border-radius:8px;background:#021722;color:#dff;border:1px solid rgba(255,255,255,0.03)}
-.revWrap{display:inline-flex;align-items:center;gap:6px}
-.totals{background:#071c2a;padding:12px;border-radius:8px;margin-top:12px;color:var(--muted)}
-.row-actions{display:flex;gap:8px;align-items:center}
+    body {
+        background: #0f172a;
+        color: white;
+        font-family: Arial;
+        padding: 20px;
+    }
+
+    h2 {
+        margin-top: 30px;
+    }
+
+    button {
+        padding: 6px 14px;
+        margin: 5px;
+        border: none;
+        background: #475569;
+        color: white;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+
+    .block, .inner-block {
+        background: rgba(255,255,255,0.05);
+        padding: 15px;
+        margin-top: 15px;
+        border-radius: 10px;
+    }
+
+    .row-group {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .row-group input[type=number] {
+        width: 100px;
+    }
+
+    label {
+        font-size: 14px;
+    }
+
+    .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    #output {
+        margin-top: 20px;
+        white-space: pre;
+        padding: 15px;
+        background: #1e293b;
+        border-radius: 8px;
+        color: #e2e8f0;
+    }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>WLED — İç Örgülü + Dış LED MAP Üretme Aracı</h1>  <div class="section">
-    <h2>1) Dış LED Blokları</h2>
-    <div class="controls">
-      <button id="btnAddOuter" type="button">Dış Blok Ekle</button>
-      <button id="btnClearOuter" class="secondary" type="button">Temizle</button>
-      <label style="margin-left:auto;display:flex;align-items:center;gap:8px">
-        <input type="checkbox" id="reverseOuter"> Dış blokları global ters sırayla birleştir
-      </label>
-    </div>
-    <div id="outerBlocks"></div>
-  </div>  <div class="section">
-    <h2>2) İç Örgülü LED Blokları (Up to 3 rows)</h2>
-    <div class="controls">
-      <button id="btnAddInner" type="button">İç Blok Ekle</button>
-      <button id="btnClearInner" class="secondary" type="button">Temizle</button>
-      <label style="margin-left:auto;display:flex;align-items:center;gap:8px">
-        <input type="checkbox" id="reverseInner"> İç blokları global ters sırayla birleştir
-      </label>
-    </div>
-    <div id="innerBlocks"></div>
-  </div>  <div class="section">
-    <h2>3) MAP Oluştur</h2>
-    <div style="display:flex;gap:8px;align-items:center">
-      <button id="btnGenerate" type="button">MAP Oluştur</button>
-      <button id="btnDownload" class="secondary" type="button">JSON İndir</button>
-      <button id="btnCopy" class="secondary" type="button">Kopyala</button>
-      <div style="margin-left:auto;color:var(--muted)" class="small">Not: Dış bloklar map'te üstte, iç bloklar altta yer alır.</div>
-    </div><textarea id="output" placeholder="MAP burada oluşturulacak..."></textarea>
 
-<div class="totals" id="totalsBox">
-  <div> <strong>Segment Özetleri</strong></div>
-  <div>Dış LED Toplamı: <span id="outerTotal">0</span></div>
-  <div>İç LED Toplamı: <span id="innerTotal">0</span></div>
-  <div>Genel Toplam: <span id="grandTotal">0</span></div>
-  <div>Segment 1 Aralığı (Dış): <span id="seg1">0 - 0</span></div>
-  <div>Segment 2 Aralığı (İç): <span id="seg2">0 - 0</span></div>
-</div>
+<h2>1) Dış LED Blokları</h2>
+<button onclick="addOuter()">Dış Blok Ekle</button>
 
-  </div>
-</div><script>
-(() => {
-  let outerId = 0;
-  let innerId = 0;
+<div id="outerBlocks"></div>
 
-  const outerBlocks = document.getElementById('outerBlocks');
-  const innerBlocks = document.getElementById('innerBlocks');
+<hr>
 
-  function createOuterElement(id, pref={s:'',e:'',rev:false}) {
-    const div = document.createElement('div');
-    div.className = 'block';
-    div.id = 'outer_' + id;
-    div.innerHTML = `
-      <div><label>Dış başlangıç</label><input type="number" id="os_${id}" value="${pref.s}"></div>
-      <div><label>Dış bitiş</label><input type="number" id="oe_${id}" value="${pref.e}"></div>
-      <div style="display:flex;align-items:center;gap:8px"><label class="revWrap"><input type="checkbox" id="or_${id}" ${pref.rev? 'checked':''}> ters</label></div>
-      <div class="row-actions"><button type="button" data-remove="${id}">Sil</button></div>
+<h2>2) İç LED Blokları (1–3 sıra)</h2>
+<button onclick="addInner()">İç Blok Ekle</button>
+
+<div id="innerBlocks"></div>
+
+<hr>
+
+<button onclick="generateMap()">LED MAP OLUŞTUR</button>
+
+<pre id="output"></pre>
+
+<script>
+
+// ===========================
+// Dış Blok Ekle
+// ===========================
+function addOuter() {
+    const outer = document.createElement("div");
+    outer.classList.add("block");
+    outer.innerHTML = `
+        <div class="row-group">
+            <label>Başlangıç</label>
+            <input type="number" class="start">
+
+            <label>Bitiş</label>
+            <input type="number" class="end">
+
+            <label class="checkbox-label">
+                <input type="checkbox" class="reverse">
+                ters
+            </label>
+
+            <button class="remove">Sil</button>
+        </div>
     `;
-    div.querySelector('button[data-remove]').addEventListener('click', () => div.remove());
-    return div;
-  }
+    outer.querySelector(".remove").onclick = () => outer.remove();
+    document.getElementById("outerBlocks").appendChild(outer);
+}
 
-  function createInnerElement(id, pref={i1s:'',i1e:'',i2s:'',i2e:'',i3s:'',i3e:'',rev1:false,rev2:false,rev3:false}) {
-    const div = document.createElement('div');
-    div.className = 'block';
-    div.id = 'inner_' + id;
-    div.innerHTML = `
-      <div><label>İç 1. sıra başlangıç</label><input type="number" id="i1s_${id}" value="${pref.i1s}"></div>
-      <div><label>İç 1. sıra bitiş</label><input type="number" id="i1e_${id}" value="${pref.i1e}"></div>
-      <div class="row-actions"><label class="revWrap"><input type="checkbox" id="i1r_${id}" ${pref.rev1?'checked':''}> ters</label></div>
+// ===========================
+// İç Blok Ekle (1–3 sıra)
+// ===========================
+function addInner() {
+    const block = document.createElement("div");
+    block.classList.add("inner-block");
 
-      <div><label>İç 2. sıra başlangıç</label><input type="number" id="i2s_${id}" value="${pref.i2s}"></div>
-      <div><label>İç 2. sıra bitiş</label><input type="number" id="i2e_${id}" value="${pref.i2e}"></div>
-      <div class="row-actions"><label class="revWrap"><input type="checkbox" id="i2r_${id}" ${pref.rev2?'checked':''}> ters</label></div>
+    block.innerHTML = `
+        <!-- Row 1 -->
+        <div class="row-group">
+            <label>İç 1. sıra başlangıç</label>
+            <input type="number" class="row1-start">
+            <label>İç 1. sıra bitiş</label>
+            <input type="number" class="row1-end">
 
-      <div><label>İç 3. sıra başlangıç</label><input type="number" id="i3s_${id}" value="${pref.i3s}"></div>
-      <div><label>İç 3. sıra bitiş</label><input type="number" id="i3e_${id}" value="${pref.i3e}"></div>
-      <div class="row-actions"><label class="revWrap"><input type="checkbox" id="i3r_${id}" ${pref.rev3?'checked':''}> ters</label></div>
+            <label class="checkbox-label">
+                <input type="checkbox" class="row1-reverse">
+                ters
+            </label>
+        </div>
 
-      <div class="row-actions"><button type="button" data-remove="${id}">Sil</button></div>
+        <!-- Row 2 -->
+        <div class="row-group">
+            <label>İç 2. sıra başlangıç</label>
+            <input type="number" class="row2-start">
+            <label>İç 2. sıra bitiş</label>
+            <input type="number" class="row2-end">
+
+            <label class="checkbox-label">
+                <input type="checkbox" class="row2-reverse">
+                ters
+            </label>
+        </div>
+
+        <!-- Row 3 -->
+        <div class="row-group">
+            <label>İç 3. sıra başlangıç</label>
+            <input type="number" class="row3-start">
+            <label>İç 3. sıra bitiş</label>
+            <input type="number" class="row3-end">
+
+            <label class="checkbox-label">
+                <input type="checkbox" class="row3-reverse">
+                ters
+            </label>
+        </div>
+
+        <button class="remove-inner">Sil</button>
     `;
-    div.querySelector('button[data-remove]').addEventListener('click', () => div.remove());
-    return div;
-  }
 
-  function addOuter(pref) {
-    outerId++;
-    outerBlocks.appendChild(createOuterElement(outerId, pref));
-  }
-  function addInner(pref) {
-    innerId++;
-    innerBlocks.appendChild(createInnerElement(innerId, pref));
-  }
-  function clearOuter() { outerBlocks.innerHTML = ''; outerId = 0; }
-  function clearInner() { innerBlocks.innerHTML = ''; innerId = 0; }
+    block.querySelector(".remove-inner").onclick = () => block.remove();
+    document.getElementById("innerBlocks").appendChild(block);
+}
 
-  function rangeArray(start, end, reversed=false) {
-    const out = [];
-    if(!Number.isFinite(start) || !Number.isFinite(end) || end < start) return out;
-    if(!reversed) { for(let i=start;i<=end;i++) out.push(i); }
-    else { for(let i=end;i>=start;i--) out.push(i); }
-    return out;
-  }
+// ===========================================
+// Güvenli Aralık Okuma + Ters İşleme
+// ===========================================
+function safeRange(startInput, endInput, reverseInput) {
+    const s = Number(startInput.value);
+    const e = Number(endInput.value);
 
-  function generateMap() {
-    try {
-      let outerMap = [];
-      const outerNodes = document.querySelectorAll('[id^="outer_"]');
-      outerNodes.forEach(node => {
-        const id = node.id.split('_')[1];
-        const s = Number(document.getElementById('os_'+id).value);
-        const e = Number(document.getElementById('oe_'+id).value);
-        const rowRev = document.getElementById('or_'+id)?.checked;
-        if(Number.isFinite(s) && Number.isFinite(e) && e>=s) {
-          outerMap = outerMap.concat(rangeArray(s,e,rowRev));
-        }
-      });
+    if (isNaN(s) || isNaN(e)) return [];
 
-      if(document.getElementById('reverseOuter')?.checked) outerMap.reverse();
+    let arr = [];
 
-      let innerMap = [];
-      const innerNodes = document.querySelectorAll('[id^="inner_"]');
-      innerNodes.forEach(node => {
-        const id = node.id.split('_')[1];
-
-        const s1 = Number(document.getElementById('i1s_'+id).value);
-        const e1 = Number(document.getElementById('i1e_'+id).value);
-        const r1 = document.getElementById('ir1_'+id).checked;
-
-        const s2 = Number(document.getElementById('i2s_'+id).value);
-        const e2 = Number(document.getElementById('i2e_'+id).value);
-        const r2 = document.getElementById('ir2_'+id).checked;
-
-        const s3 = Number(document.getElementById('i3s_'+id).value);
-        const e3 = Number(document.getElementById('i3e_'+id).value);
-        const r3 = document.getElementById('ir3_'+id).checked;
-
-        const row1 = (Number.isFinite(s1)&&Number.isFinite(e1)&&e1>=s1) ? rangeArray(s1,e1,r1) : [];
-        const row2 = (Number.isFinite(s2)&&Number.isFinite(e2)&&e2>=s2) ? rangeArray(s2,e2,r2) : [];
-        const row3 = (Number.isFinite(s3)&&Number.isFinite(e3)&&e3>=s3) ? rangeArray(s3,e3,r3) : [];
-
-        const max = Math.max(row1.length,row2.length,row3.length);
-        for(let i=0;i<max;i++){
-          if(i<row1.length) innerMap.push(row1[i]);
-          if(i<row2.length) innerMap.push(row2[i]);
-          if(i<row3.length) innerMap.push(row3[i]);
-        }
-      });
-
-      if(document.getElementById('reverseInner')?.checked) innerMap.reverse();
-
-      const fullMap = outerMap.concat(innerMap);
-
-      document.getElementById('output').value = JSON.stringify({map: fullMap}, null, 2);
-      updateTotals(outerMap, innerMap);
-
-    } catch (err) {
-      console.error('generateMap error', err);
-      alert('Hata oluştu. Konsolu kontrol et.');
+    if (s <= e) {
+        for (let i = s; i <= e; i++) arr.push(i);
+    } else {
+        for (let i = s; i >= e; i--) arr.push(i);
     }
-  }
 
-  function updateTotals(outerMap, innerMap) {
-    const outerCount = outerMap.length;
-    const innerCount = innerMap.length;
-    const grand = outerCount + innerCount;
-    document.getElementById('outerTotal').textContent = outerCount;
-    document.getElementById('innerTotal').textContent = innerCount;
-    document.getElementById('grandTotal').textContent = grand;
-    document.getElementById('seg1').textContent = `0 - ${Math.max(0, outerCount - 1)}`;
-    document.getElementById('seg2').textContent = `${outerCount} - ${Math.max(0, grand - 1)}`;
-  }
+    if (reverseInput.checked) arr.reverse();
 
-  function downloadJSON() {
-    const txt = document.getElementById('output').value;
-    if(!txt) { alert('Önce MAP oluşturun.'); return; }
-    const blob = new Blob([txt], {type:'application/json'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'wled_map.json'; a.click(); URL.revokeObjectURL(url);
-  }
+    return arr;
+}
 
-  function copyToClipboard() {
-    const t = document.getElementById('output').value; if(!t){ alert('MAP yok'); return; }
-    navigator.clipboard.writeText(t).then(()=>alert('Kopyalandı'));
-  }
+// ===========================================
+// MAP OLUŞTUR — DIŞ SONRA İÇ
+// ===========================================
+function generateMap() {
+    let final = [];
 
-  window.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('btnAddOuter').addEventListener('click', () => addOuter());
-    document.getElementById('btnClearOuter').addEventListener('click', () => clearOuter());
-    document.getElementById('btnAddInner').addEventListener('click', () => addInner());
-    document.getElementById('btnClearInner').addEventListener('click', () => clearInner());
+    // ---- Dış bloklar ----
+    document.querySelectorAll("#outerBlocks .block").forEach(block => {
+        const range = safeRange(
+            block.querySelector(".start"),
+            block.querySelector(".end"),
+            block.querySelector(".reverse")
+        );
+        final.push(...range);
+    });
 
-    document.getElementById('btnGenerate').addEventListener('click', () => generateMap());
-    document.getElementById('btnDownload').addEventListener('click', () => downloadJSON());
-    document.getElementById('btnCopy').addEventListener('click', () => copyToClipboard());
+    // ---- İç bloklar ----
+    document.querySelectorAll("#innerBlocks .inner-block").forEach(block => {
 
-    addOuter({s:'0', e:'120'});
-    addOuter({s:'121', e:'210'});
-    addInner({i1s:'151', i1e:'298', i2s:'301', i2e:'448'});
-  });
-})();
-</script></body>
+        const row1 = safeRange(
+            block.querySelector(".row1-start"),
+            block.querySelector(".row1-end"),
+            block.querySelector(".row1-reverse")
+        );
+
+        const row2 = safeRange(
+            block.querySelector(".row2-start"),
+            block.querySelector(".row2-end"),
+            block.querySelector(".row2-reverse")
+        );
+
+        const row3 = safeRange(
+            block.querySelector(".row3-start"),
+            block.querySelector(".row3-end"),
+            block.querySelector(".row3-reverse")
+        );
+
+        const max = Math.max(row1.length, row2.length, row3.length);
+        let woven = [];
+
+        for (let i = 0; i < max; i++) {
+            if (row1[i] !== undefined) woven.push(row1[i]);
+            if (row2[i] !== undefined) woven.push(row2[i]);
+            if (row3[i] !== undefined) woven.push(row3[i]);
+        }
+
+        final.push(...woven);
+    });
+
+    // Sonucu göster
+    document.getElementById("output").textContent =
+        JSON.stringify(final, null, 2);
+}
+
+</script>
+
+</body>
 </html>
