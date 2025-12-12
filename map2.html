@@ -182,8 +182,14 @@ function addInner() {
 // Güvenli Aralık Okuma + Ters İşleme
 // ===========================================
 function safeRange(startInput, endInput, reverseInput) {
-    const s = Number(startInput.value);
-    const e = Number(endInput.value);
+    const sVal = startInput.value.trim();
+    const eVal = endInput.value.trim();
+
+    // Başlangıç veya bitiş boşsa: hiç LED ekleme
+    if (sVal === "" || eVal === "") return [];
+
+    const s = Number(sVal);
+    const e = Number(eVal);
 
     if (isNaN(s) || isNaN(e)) return [];
 
@@ -199,6 +205,7 @@ function safeRange(startInput, endInput, reverseInput) {
 
     return arr;
 }
+
 
 // ===========================================
 // MAP OLUŞTUR — DIŞ SONRA İÇ
