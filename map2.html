@@ -95,6 +95,8 @@
 <div id="totalsBox"></div>
 
 <pre id="output"></pre>
+    
+<button onclick="copyJSON()" style="margin-top:10px;">JSON'u Kopyala</button>
 
 <script>
 
@@ -258,7 +260,21 @@ function generateMap() {
     document.getElementById("output").textContent =
         JSON.stringify(final, null, 2);
 }
+function copyJSON() {
+    const text = document.getElementById("output").textContent.trim();
 
+    if (!text) {
+        alert("Kopyalanacak JSON bulunamadı!");
+        return;
+    }
+
+    navigator.clipboard.writeText(text)
+        .then(() => alert("JSON kopyalandı!"))
+        .catch(() => alert("Kopyalama başarısız!"));
+}
+
+
+    
 </script>
 
 </body>
