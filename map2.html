@@ -1,4 +1,5 @@
 <!doctype html>
+
 <html lang="tr">
 <head>
 <meta charset="utf-8" />
@@ -24,9 +25,7 @@ textarea{width:100%;height:260px;margin-top:16px;padding:12px;border-radius:8px;
 </head>
 <body>
 <div class="wrap">
-  <h1>WLED — İç Örgülü + Dış LED MAP Üretme Aracı</h1>
-
-  <div class="section">
+  <h1>WLED — İç Örgülü + Dış LED MAP Üretme Aracı</h1>  <div class="section">
     <h2>1) Dış LED Blokları</h2>
     <div class="controls">
       <button id="btnAddOuter" type="button">Dış Blok Ekle</button>
@@ -36,9 +35,7 @@ textarea{width:100%;height:260px;margin-top:16px;padding:12px;border-radius:8px;
       </label>
     </div>
     <div id="outerBlocks"></div>
-  </div>
-
-  <div class="section">
+  </div>  <div class="section">
     <h2>2) İç Örgülü LED Blokları (Up to 3 rows)</h2>
     <div class="controls">
       <button id="btnAddInner" type="button">İç Blok Ekle</button>
@@ -48,41 +45,33 @@ textarea{width:100%;height:260px;margin-top:16px;padding:12px;border-radius:8px;
       </label>
     </div>
     <div id="innerBlocks"></div>
-  </div>
-
-  <div class="section">
+  </div>  <div class="section">
     <h2>3) MAP Oluştur</h2>
     <div style="display:flex;gap:8px;align-items:center">
       <button id="btnGenerate" type="button">MAP Oluştur</button>
       <button id="btnDownload" class="secondary" type="button">JSON İndir</button>
       <button id="btnCopy" class="secondary" type="button">Kopyala</button>
       <div style="margin-left:auto;color:var(--muted)" class="small">Not: Dış bloklar map'te üstte, iç bloklar altta yer alır.</div>
-    </div>
+    </div><textarea id="output" placeholder="MAP burada oluşturulacak..."></textarea>
 
-    <textarea id="output" placeholder="MAP burada oluşturulacak..."></textarea>
-
-    <div class="totals" id="totalsBox">
-      <div> <strong>Segment Özetleri</strong></div>
-      <div>Dış LED Toplamı: <span id="outerTotal">0</span></div>
-      <div>İç LED Toplamı: <span id="innerTotal">0</span></div>
-      <div>Genel Toplam: <span id="grandTotal">0</span></div>
-      <div>Segment 1 Aralığı (Dış): <span id="seg1">0 - 0</span></div>
-      <div>Segment 2 Aralığı (İç): <span id="seg2">0 - 0</span></div>
-    </div>
-  </div>
+<div class="totals" id="totalsBox">
+  <div> <strong>Segment Özetleri</strong></div>
+  <div>Dış LED Toplamı: <span id="outerTotal">0</span></div>
+  <div>İç LED Toplamı: <span id="innerTotal">0</span></div>
+  <div>Genel Toplam: <span id="grandTotal">0</span></div>
+  <div>Segment 1 Aralığı (Dış): <span id="seg1">0 - 0</span></div>
+  <div>Segment 2 Aralığı (İç): <span id="seg2">0 - 0</span></div>
 </div>
 
-<script>
+  </div>
+</div><script>
 (() => {
-  // Encapsulate to avoid globals while exposing needed functions via DOM events
-
   let outerId = 0;
   let innerId = 0;
 
   const outerBlocks = document.getElementById('outerBlocks');
   const innerBlocks = document.getElementById('innerBlocks');
 
-  // Helper: create outer block element
   function createOuterElement(id, pref={s:'',e:'',rev:false}) {
     const div = document.createElement('div');
     div.className = 'block';
@@ -93,31 +82,33 @@ textarea{width:100%;height:260px;margin-top:16px;padding:12px;border-radius:8px;
       <div style="display:flex;align-items:center;gap:8px"><label class="revWrap"><input type="checkbox" id="or_${id}" ${pref.rev? 'checked':''}> ters</label></div>
       <div class="row-actions"><button type="button" data-remove="${id}">Sil</button></div>
     `;
-    // wire remove button
     div.querySelector('button[data-remove]').addEventListener('click', () => div.remove());
     return div;
   }
 
-  // Helper: create inner element (supports 3 rows)
-  function createInnerElement(id, pref={i1s:'',i1e:'',i2s:'',i2e:'',i3s:'',i3e:'',rev:false}) {
+  function createInnerElement(id, pref={i1s:'',i1e:'',i2s:'',i2e:'',i3s:'',i3e:'',rev1:false,rev2:false,rev3:false}) {
     const div = document.createElement('div');
     div.className = 'block';
     div.id = 'inner_' + id;
     div.innerHTML = `
       <div><label>İç 1. sıra başlangıç</label><input type="number" id="i1s_${id}" value="${pref.i1s}"></div>
       <div><label>İç 1. sıra bitiş</label><input type="number" id="i1e_${id}" value="${pref.i1e}"></div>
+      <div class="row-actions"><label class="revWrap"><input type="checkbox" id="i1r_${id}" ${pref.rev1?'checked':''}> ters</label></div>
+
       <div><label>İç 2. sıra başlangıç</label><input type="number" id="i2s_${id}" value="${pref.i2s}"></div>
       <div><label>İç 2. sıra bitiş</label><input type="number" id="i2e_${id}" value="${pref.i2e}"></div>
+      <div class="row-actions"><label class="revWrap"><input type="checkbox" id="i2r_${id}" ${pref.rev2?'checked':''}> ters</label></div>
+
       <div><label>İç 3. sıra başlangıç</label><input type="number" id="i3s_${id}" value="${pref.i3s}"></div>
       <div><label>İç 3. sıra bitiş</label><input type="number" id="i3e_${id}" value="${pref.i3e}"></div>
-      <div style="display:flex;align-items:center;gap:8px"><label class="revWrap"><input type="checkbox" id="ir_${id}" ${pref.rev? 'checked':''}> ters (satır2 ters)</label></div>
+      <div class="row-actions"><label class="revWrap"><input type="checkbox" id="i3r_${id}" ${pref.rev3?'checked':''}> ters</label></div>
+
       <div class="row-actions"><button type="button" data-remove="${id}">Sil</button></div>
     `;
     div.querySelector('button[data-remove]').addEventListener('click', () => div.remove());
     return div;
   }
 
-  // Public actions
   function addOuter(pref) {
     outerId++;
     outerBlocks.appendChild(createOuterElement(outerId, pref));
@@ -129,7 +120,6 @@ textarea{width:100%;height:260px;margin-top:16px;padding:12px;border-radius:8px;
   function clearOuter() { outerBlocks.innerHTML = ''; outerId = 0; }
   function clearInner() { innerBlocks.innerHTML = ''; innerId = 0; }
 
-  // Range builder with optional reverse
   function rangeArray(start, end, reversed=false) {
     const out = [];
     if(!Number.isFinite(start) || !Number.isFinite(end) || end < start) return out;
@@ -138,7 +128,6 @@ textarea{width:100%;height:260px;margin-top:16px;padding:12px;border-radius:8px;
     return out;
   }
 
-  // Generate map
   function generateMap() {
     try {
       let outerMap = [];
@@ -152,23 +141,29 @@ textarea{width:100%;height:260px;margin-top:16px;padding:12px;border-radius:8px;
           outerMap = outerMap.concat(rangeArray(s,e,rowRev));
         }
       });
+
       if(document.getElementById('reverseOuter')?.checked) outerMap.reverse();
 
       let innerMap = [];
       const innerNodes = document.querySelectorAll('[id^="inner_"]');
       innerNodes.forEach(node => {
         const id = node.id.split('_')[1];
+
         const s1 = Number(document.getElementById('i1s_'+id).value);
         const e1 = Number(document.getElementById('i1e_'+id).value);
+        const r1 = document.getElementById('ir1_'+id).checked;
+
         const s2 = Number(document.getElementById('i2s_'+id).value);
         const e2 = Number(document.getElementById('i2e_'+id).value);
+        const r2 = document.getElementById('ir2_'+id).checked;
+
         const s3 = Number(document.getElementById('i3s_'+id).value);
         const e3 = Number(document.getElementById('i3e_'+id).value);
-        const row2rev = document.getElementById('ir_'+id)?.checked;
+        const r3 = document.getElementById('ir3_'+id).checked;
 
-        const row1 = (Number.isFinite(s1)&&Number.isFinite(e1)&&e1>=s1) ? rangeArray(s1,e1,false) : [];
-        const row2 = (Number.isFinite(s2)&&Number.isFinite(e2)&&e2>=s2) ? rangeArray(s2,e2,row2rev) : [];
-        const row3 = (Number.isFinite(s3)&&Number.isFinite(e3)&&e3>=s3) ? rangeArray(s3,e3,false) : [];
+        const row1 = (Number.isFinite(s1)&&Number.isFinite(e1)&&e1>=s1) ? rangeArray(s1,e1,r1) : [];
+        const row2 = (Number.isFinite(s2)&&Number.isFinite(e2)&&e2>=s2) ? rangeArray(s2,e2,r2) : [];
+        const row3 = (Number.isFinite(s3)&&Number.isFinite(e3)&&e3>=s3) ? rangeArray(s3,e3,r3) : [];
 
         const max = Math.max(row1.length,row2.length,row3.length);
         for(let i=0;i<max;i++){
@@ -181,8 +176,10 @@ textarea{width:100%;height:260px;margin-top:16px;padding:12px;border-radius:8px;
       if(document.getElementById('reverseInner')?.checked) innerMap.reverse();
 
       const fullMap = outerMap.concat(innerMap);
+
       document.getElementById('output').value = JSON.stringify({map: fullMap}, null, 2);
       updateTotals(outerMap, innerMap);
+
     } catch (err) {
       console.error('generateMap error', err);
       alert('Hata oluştu. Konsolu kontrol et.');
@@ -207,14 +204,13 @@ textarea{width:100%;height:260px;margin-top:16px;padding:12px;border-radius:8px;
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = 'wled_map.json'; a.click(); URL.revokeObjectURL(url);
   }
+
   function copyToClipboard() {
     const t = document.getElementById('output').value; if(!t){ alert('MAP yok'); return; }
     navigator.clipboard.writeText(t).then(()=>alert('Kopyalandı'));
   }
 
-  // Attach UI events after DOM ready
   window.addEventListener('DOMContentLoaded', () => {
-    // Buttons
     document.getElementById('btnAddOuter').addEventListener('click', () => addOuter());
     document.getElementById('btnClearOuter').addEventListener('click', () => clearOuter());
     document.getElementById('btnAddInner').addEventListener('click', () => addInner());
@@ -224,16 +220,10 @@ textarea{width:100%;height:260px;margin-top:16px;padding:12px;border-radius:8px;
     document.getElementById('btnDownload').addEventListener('click', () => downloadJSON());
     document.getElementById('btnCopy').addEventListener('click', () => copyToClipboard());
 
-    // Expose add/clear functions for debugging in console if needed
-    window._debug = { addOuter, addInner, clearOuter, clearInner, generateMap };
-
-    // initialize some example blocks so UI isn't empty
     addOuter({s:'0', e:'120'});
     addOuter({s:'121', e:'210'});
     addInner({i1s:'151', i1e:'298', i2s:'301', i2e:'448'});
   });
-
 })();
-</script>
-</body>
+</script></body>
 </html>
